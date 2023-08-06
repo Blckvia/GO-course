@@ -1,6 +1,7 @@
 package cart
 
 import (
+	"errors"
 	"os/user"
 	"test/product"
 	"testing"
@@ -60,6 +61,25 @@ func TestTotalPrice(t *testing.T) {
     assert.Equal(t, money.New(4000, "EUR"), actual)
 }
 
+func TestLock(t *testing.T) {
+    c := Cart{
+        ID: "123",
+    }
+    err := c.Lock()
+    assert.NoError(t, err)
+    assert.True(t, c.isLocked)
+    assert.True(t, c.lockedAt.Unix() > 0)
+}
+
+func TestAlreadyLock(t *testing.T) {
+    c := Cart{
+        ID: "123",
+        isLocked: true,
+    }
+    err := c.Lock()
+    assert.Error(t, err)
+}
+
 func (c *Cart) TotalPrice() (*money.Money, error) {
     total := money.New(0, c.CurrencyCode)
     // var err error
@@ -77,7 +97,11 @@ func (c *Cart) TotalPrice() (*money.Money, error) {
 }
 
 func (c *Cart) Lock() error {
-    //...
+    if c.isLocked {
+        return errors.New("cart is already locked")
+    }
+    c.isLocked = true
+    c.lockedAt = time.Now()
     return nil
 }
 
